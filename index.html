@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>水理計算網頁版｜後台版</title>
+  <style>
+    :root{
+      --bg:#eef3f9;--panel:#ffffff;--line:#d7dfeb;--text:#1d2a3a;--muted:#617086;--accent:#cf1f2e;--accent2:#214f96;--soft:#f8fbff;--ok:#14804a;--warn:#c62828;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f3f6fb 0%,#eaf0f8 100%);font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--text)}
+    .wrap{max-width:1380px;margin:24px auto;padding:0 16px 32px}
+    .hero,.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 28px rgba(28,48,84,.05)}
+    .hero{padding:22px 24px}
+    h1{margin:0 0 8px;font-size:30px;letter-spacing:.5px}
+    .sub{color:var(--muted);line-height:1.8}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .page-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(420px,.82fr);grid-template-areas:"left tank" "left di" "results summary";column-gap:16px;row-gap:16px;margin-top:18px;align-items:stretch}
+    .stack{display:flex;flex-direction:column;gap:16px}.left-stack{grid-area:left}.tank-card{grid-area:tank}.di-card{grid-area:di}.results-card{grid-area:results}.print-sheet{grid-area:summary}.tight-card{height:100%;display:flex;flex-direction:column}.card-equal{min-height:320px}.card-equal .results-grid,.card-equal .formula-card,.card-equal .out-line{flex:1}
+    .right-stack{height:100%}
+    .right-stack .di-card{margin-top:0}
+    .below-stack{display:contents}
+    .split-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{padding:18px}
+    .section-title{font-size:22px;font-weight:900;margin:0 0 14px;color:var(--accent2);letter-spacing:.5px}
+    .mini{font-size:13px;color:var(--muted)}
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;align-items:start}
+    .row > div,.row > label{grid-column:span 12}
+    @media(min-width:860px){
+      .c2{grid-column:span 2}.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c9{grid-column:span 9}.c10{grid-column:span 10}.c12{grid-column:span 12}
+    }
+    label{display:block;margin-bottom:6px;font-weight:800;font-size:14px;color:#334155}
+    input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cfd7e4;border-radius:12px;background:#fff;font-size:16px;min-height:44px}
+    input[readonly], textarea[readonly]{background:#f7f9fc;font-weight:700;color:#405068}
+    .editable-input{border:2px solid #c62828 !important;background:#fff7f7 !important;color:#b71c1c !important;font-weight:800}
+    .editable-label{color:#b71c1c !important}
+.inline-edit{display:inline-block;width:72px;min-height:32px;padding:4px 8px;border:2px solid #c62828 !important;background:#fff7f7 !important;color:#b71c1c !important;font-weight:800;border-radius:10px;vertical-align:middle;margin:0 4px}
+.inline-edit.days{width:64px}
+.export-tip{margin-top:10px;font-size:13px;color:#475569;line-height:1.7;background:#f8fbff;border:1px solid #dbe4f0;border-radius:12px;padding:10px 12px}
+    .fixed-note{margin-top:10px;background:#f8fafc;border:1px solid #dbe4f0;border-radius:12px;padding:10px 12px;color:#475569;font-size:13px;line-height:1.7}
+    table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
+    th,td{border:1px solid var(--line);padding:10px 8px;text-align:center;vertical-align:middle;word-break:break-word}
+    th{background:#f7f9fc;font-weight:800}
+    td input{min-height:40px;padding:8px 10px;border-radius:10px}
+    .num{text-align:right}
+    .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    button{border:none;border-radius:12px;padding:11px 16px;font-size:15px;font-weight:800;cursor:pointer}
+    .primary{background:var(--accent2);color:#fff}
+    .ghost{background:#eef3fb;color:var(--accent2)}
+    .danger{background:#feecef;color:#a61d31}
+    .results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .result-box{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fbfcfe}
+    .result-box h3{margin:0 0 8px;font-size:16px;color:var(--muted)}
+    .value{font-size:30px;font-weight:900;color:var(--accent);line-height:1.2}
+    .eq{font-size:14px;color:var(--muted);line-height:1.75;margin-top:6px}
+    .formula-card{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:16px}
+    .formula-title{font-size:20px;font-weight:900;color:#243b66;margin:0 0 10px}
+    .formula-line{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;line-height:2;font-size:21px;padding:6px 0;border-bottom:1px dashed #d6dfec}
+    .formula-line:last-child{border-bottom:none}
+    .formula-line-break{flex-direction:column;align-items:flex-start;line-height:1.6;gap:2px}
+    .formula-line-break > div{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
+    .formula-line .label{font-weight:800;color:#26323f}
+    .formula-line .n{display:inline-block;min-width:88px;text-align:center;font-weight:900;color:var(--accent)}
+    .formula-line .u{font-size:18px}
+    .formula-note{margin-top:10px;font-size:15px;color:#334155;line-height:1.8}
+    .note{background:#fff8e8;border:1px solid #f2d28c;border-radius:14px;padding:12px 14px;color:#6b4b00;line-height:1.8}
+    .print-sheet{margin-top:0}
+    .out-line{line-height:2;font-size:15px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef3fb;color:var(--accent2);font-weight:700;font-size:12px;margin-left:8px}
+    .adopt-red{color:#d40000;font-weight:900}
+    .active-row td{background:#fff5f5}
+    .active-row td:first-child{font-weight:800}
+    .tiny{font-size:12px;color:var(--muted)}
+    .summary-list{display:grid;gap:8px}
+    .summary-list b{font-weight:900}
+    .backend-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:999}
+    .backend-panel{width:min(1080px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:20px;border:1px solid var(--line);box-shadow:0 20px 50px rgba(15,23,42,.25)}
+    .backend-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .backend-section{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fbfcfe}
+    .backend-title{font-size:18px;font-weight:900;color:#214f96;margin:0 0 10px}
+    .pwbox{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end}
+    .close-x{float:right;background:#feecef;color:#a61d31}
+    .muted{color:var(--muted)}
+    
+    .backend-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .backend-section textarea{min-height:88px;resize:vertical}
+    .layout-table td,.layout-table th{text-align:left}
+    .layout-table input,.layout-table select{min-height:38px;padding:8px 10px;font-size:14px}
+    .card-layouting{outline:2px dashed rgba(33,79,150,.35);outline-offset:2px}
+    .card-grab{cursor:move}
+    .slot-badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef3fb;color:#214f96;font-size:12px;font-weight:800;margin-left:6px}
+    @media(max-width:1180px){.backend-grid-3{grid-template-columns:1fr}}
+    @media(max-width:1180px){.page-grid{grid-template-columns:1fr;grid-template-areas:"left" "tank" "di" "results" "summary"}.split-2{grid-template-columns:1fr}.results-grid{grid-template-columns:1fr}.formula-line{font-size:18px}.formula-line .u{font-size:16px}.backend-grid{grid-template-columns:1fr}}
+    @page{size:A4 portrait;margin:10mm}
+    @media print{html,body{background:#fff !important}body{font-size:11pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:190mm;margin:0 auto;padding:0}.hero,.card{box-shadow:none;break-inside:avoid;border-radius:8px}.hero{padding:10px 12px;margin-bottom:4mm}.card{padding:10px}.page-grid{display:grid;grid-template-columns:118mm 62mm;grid-template-areas:"left tank" "left di" "results summary";column-gap:4mm;row-gap:4mm;margin-top:0;align-items:start}.left-stack{grid-area:left;display:block}.left-stack > .card:first-child{break-after:avoid-page;page-break-after:avoid}.left-stack > .card:nth-child(2){break-before:page;page-break-before:always;break-inside:avoid-page;page-break-inside:avoid}.tank-card{grid-area:tank;height:62mm}.di-card{grid-area:di;height:55mm}.results-card{grid-area:results;height:72mm}.print-sheet{grid-area:summary;height:72mm}.tight-card,.card-equal{min-height:0;height:100%}.section-title{font-size:14pt;margin:0 0 8px}.value{font-size:18pt}.eq,.out-line,.formula-note,.mini,.fixed-note,.tiny,th,td,label,input{font-size:9pt}.btns,.top-actions{display:none !important}.backend-overlay{display:none !important}input,select,textarea{min-height:0;padding:6px 8px;border-radius:6px}th,td{padding:4px 3px}.formula-card{padding:8px;height:calc(100% - 54px);display:flex;flex-direction:column}.formula-title{font-size:12pt;margin:0 0 6px}.formula-line{font-size:10pt;line-height:1.45;padding:3px 0}.formula-line .u{font-size:9pt}.results-grid{height:calc(100% - 54px);gap:8px}.result-box{padding:8px;border-radius:10px}.result-box h3{font-size:9pt;margin:0 0 4px}.out-line{height:calc(100% - 28px);overflow:hidden;line-height:1.6}.summary-list{gap:4px}.note{margin-top:8px;padding:8px 10px;line-height:1.5}.row{gap:8px}.fixed-note{padding:8px 10px}.mini{line-height:1.5}.below-stack{display:contents}}
+  </style>
+<script>
+localStorage.setItem("water_calc_main_v5", "{\"projectName\":\"HASS林口建林段199地號\",\"permitNo\":\"\",\"residential\":[{\"name\":\"套房\",\"households\":\"0\"},{\"name\":\"住宅\",\"households\":\"46\"},{\"name\":\"透天/大型別墅\",\"households\":\"0\"}],\"nonResidential\":[{\"name\":\"辦公室\",\"area\":\"0\"},{\"name\":\"一般事務所\",\"area\":\"0\"},{\"name\":\"店舖(三戶)\",\"area\":\"182.72\"},{\"name\":\"中小學校\",\"area\":\"0\"},{\"name\":\"工廠\",\"area\":\"0\"}],\"v2Factor\":\"1\",\"resDays\":\"1\",\"vgPercent\":\"50\",\"adoptVg\":\"60.81\",\"adoptVt\":\"39.06\"}");
+localStorage.setItem("water_calc_backend_v5", "{\"residential\":[{\"name\":\"套房\",\"people\":2,\"liters\":250},{\"name\":\"住宅\",\"people\":3,\"liters\":250},{\"name\":\"透天/大型別墅\",\"people\":8,\"liters\":250}],\"nonResidential\":[{\"name\":\"辦公室\",\"ratio\":0.6,\"persons\":0.2,\"liters\":100},{\"name\":\"一般事務所\",\"ratio\":0.57,\"persons\":0.2,\"liters\":100},{\"name\":\"店舖(三戶)\",\"ratio\":0.55,\"persons\":0.16,\"liters\":100},{\"name\":\"中小學校\",\"ratio\":0.6,\"persons\":0.2,\"liters\":40},{\"name\":\"工廠\",\"ratio\":0.6,\"persons\":0.2,\"liters\":60}],\"standardSizes\":[20,25,40,50,75,100],\"texts\":{\"pageTitle\":\"台灣自來水公司內線審查計算表｜網頁版填入計算\",\"heroSub\":\"可直接輸入工程名稱、建照號碼、戶數、樓地板面積、V2 調整係數、住宅類基準日數、水池與水塔容量，系統自動計算 <b>V1、V2、V、Vd、Di、水池/水塔容量、揚水管口徑</b>。<br>固定欄位預設不可改；如需調整固定數值，請進入後台設定。\",\"basicTitle\":\"基本資料\",\"waterTitle\":\"一、間接給水總表口徑 — 日用水量 V\",\"tankTitle\":\"二、水池（Vg）及水塔（Vt）容量\",\"diTitle\":\"（二）進水管口徑（Di）／一日設計用水量（Vd）\",\"resultsTitle\":\"計算結果總覽\",\"summaryTitle\":\"列印摘要\",\"residentialRule\":\"【套房每戶以2人，住宅每戶以3人計算，透天厝、大型別墅每戶8人計算，每人每天用水量以250L/cap計算】\",\"waterFixedNote\":\"紅色框欄位可填寫；其餘欄位均為固定值。若需修改固定欄位內數字，請按右上角「後台設定」。\",\"resultsNote\":\"標準口徑依你提供表格級距優先判定：<b>20 / 25 / 40 mm</b>；超過時再顯示公式計算值。<br>本頁同步顯示安全係數、Vd、Di = 4.59√Vd 與本案採用口徑。\"},\"layout\":{\"gap\":16,\"rowGap\":16,\"cardPadding\":18,\"basic\":{\"order\":1,\"minHeight\":0,\"marginTop\":0},\"water\":{\"order\":2,\"minHeight\":0,\"marginTop\":0},\"tank\":{\"slot\":\"tank\",\"minHeight\":320,\"marginTop\":0},\"di\":{\"slot\":\"di\",\"minHeight\":0,\"marginTop\":0},\"results\":{\"slot\":\"results\",\"minHeight\":320,\"marginTop\":0},\"summary\":{\"slot\":\"summary\",\"minHeight\":320,\"marginTop\":0}}}");
+
+
+</script>
+</head>
+<body>
+<div class="wrap">
+    <div class="hero">
+      <h1 id="pageTitle">台灣自來水公司內線審查計算表｜網頁版填入計算</h1>
+      <div class="sub" id="heroSub">可直接輸入工程名稱、建照號碼、戶數、樓地板面積、V2 調整係數、住宅類基準日數、水池與水塔容量，系統自動計算 <b>V1、V2、V、Vd、Di、水池/水塔容量、揚水管口徑</b>。<br>固定欄位預設不可改；如需調整固定數值，請進入後台設定。</div>
+      <div class="top-actions">
+        <button class="primary" onclick="window.print()">列印 / 存成 PDF</button>
+        <button class="ghost" onclick="return saveAsNewHTML(event)">另存新檔 HTML</button>
+        <button class="ghost" onclick="openBackend()">後台設定</button>
+</div>
+      
+    </div>
+
+    <div class="page-grid" style="gap: 16px;">
+      <div class="stack left-stack">
+        
+
+        
+      <div class="card" id="basicCard" data-card="basic" style="padding: 18px; margin-top: 0px;">
+          <div class="section-title" id="basicTitle">基本資料</div>
+          <div class="row">
+            <div class="c6">
+              <label class="editable-label">工程名稱</label>
+              <input id="projectName" class="editable-input" value="HASS林口建林段">
+            </div>
+            <div class="c6">
+              <label class="editable-label">建照號碼</label>
+              <input id="permitNo" class="editable-input" value="" placeholder="可留白">
+            </div>
+          </div>
+        </div><div class="card" id="waterCard" data-card="water" style="padding: 18px; margin-top: 0px;">
+          <div class="section-title" id="waterTitle">一、間接給水總表口徑 — 日用水量 V</div>
+          <div class="mini">1. 由用水人口數推算（供住宅使用部分）</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:24%">類型</th>
+                <th style="width:16%">人數/戶</th>
+                <th style="width:18%; color:#b71c1c">戶數</th>
+                <th style="width:20%">用水量 (L/cap.)</th>
+                <th style="width:22%">V1 分項 (M³)</th>
+              </tr>
+            </thead>
+            <tbody id="resBody"><tr>
+      <td><input value="套房" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="2" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="0" data-kind="res-households" data-i="0"></td>
+      <td><input class="num" type="number" step="0.01" value="250" readonly=""></td>
+      <td>0.00</td></tr><tr>
+      <td><input value="住宅" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="3" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="46" data-kind="res-households" data-i="1"></td>
+      <td><input class="num" type="number" step="0.01" value="250" readonly=""></td>
+      <td>34.50</td></tr><tr>
+      <td><input value="透天/大型別墅" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="8" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="0" data-kind="res-households" data-i="2"></td>
+      <td><input class="num" type="number" step="0.01" value="250" readonly=""></td>
+      <td>0.00</td></tr></tbody>
+          </table>
+          <div class="mini" id="residentialRuleText" style="margin-top:10px; color:#0f766e; font-weight:700; line-height:1.8;">【套房每戶以2人，住宅每戶以3人計算，透天厝、大型別墅每戶8人計算，每人每天用水量以250L/cap計算】</div>
+          <div class="fixed-note" id="waterFixedNote">紅色框欄位可填寫；其餘欄位均為固定值。若需修改固定欄位內數字，請按右上角「後台設定」。</div>
+
+          <div style="height:14px"></div>
+          <div class="mini">2. 間接給水（大樓、公寓等）樓地板面積推算法</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:20%">建築物種類</th>
+                <th style="width:18%; color:#b71c1c">樓地板面積 (M²)</th>
+                <th style="width:14%">有效面積比</th>
+                <th style="width:14%">人員 (人/M²)</th>
+                <th style="width:14%">使用水量 (L/人)</th>
+                <th style="width:20%">V2' (M³)</th>
+              </tr>
+            </thead>
+            <tbody id="nrBody"><tr>
+      <td><input value="辦公室" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="0" data-kind="non-area" data-i="0"></td>
+      <td><input class="num" type="number" step="0.01" value="0.6" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="0.2" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="100" readonly=""></td>
+      <td>0.00</td></tr><tr>
+      <td><input value="一般事務所" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="0" data-kind="non-area" data-i="1"></td>
+      <td><input class="num" type="number" step="0.01" value="0.57" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="0.2" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="100" readonly=""></td>
+      <td>0.00</td></tr><tr>
+      <td><input value="店舖(三戶)" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="182.72" data-kind="non-area" data-i="2"></td>
+      <td><input class="num" type="number" step="0.01" value="0.55" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="0.16" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="100" readonly=""></td>
+      <td>1.61</td></tr><tr>
+      <td><input value="中小學校" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="0" data-kind="non-area" data-i="3"></td>
+      <td><input class="num" type="number" step="0.01" value="0.6" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="0.2" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="40" readonly=""></td>
+      <td>0.00</td></tr><tr>
+      <td><input value="工廠" readonly=""></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="0" data-kind="non-area" data-i="4"></td>
+      <td><input class="num" type="number" step="0.01" value="0.6" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="0.2" readonly=""></td>
+      <td><input class="num" type="number" step="0.01" value="60" readonly=""></td>
+      <td>0.00</td></tr></tbody>
+          </table>
+
+          <div class="row" style="margin-top:16px">
+            <div class="c4">
+              <label class="editable-label">V2 調整係數</label>
+              <input id="v2Factor" class="editable-input num" type="number" step="0.01" value="1">
+              <div class="tiny">例如 +10% 可填 1.1</div>
+            </div>
+            <div class="c4">
+              <label class="editable-label">住宅類基準日數</label>
+              <input id="resDays" class="editable-input num" type="number" step="1" value="2">
+            </div>
+          </div>
+        </div></div>
+
+      <div class="card tank-card tight-card card-equal" id="tankCard" data-card="tank" style="padding: 18px; min-height: 320px; margin-top: 0px; grid-row-start: tank; grid-column-start: tank; grid-row-end: tank; grid-column-end: tank;">
+        <div class="section-title" id="tankTitle">二、水池（Vg）及水塔（Vt）容量</div>
+        <div class="row">
+          <div class="c6">
+            <label class="editable-label">採用水池容量 Vg (M³)</label>
+            <input id="adoptVg" class="editable-input num" type="number" step="0.01" value="60.81">
+          </div>
+          <div class="c6">
+            <label class="editable-label">採用水塔容量 Vt (M³)</label>
+            <input id="adoptVt" class="editable-input num" type="number" step="0.01" value="39.06">
+          </div>
+        </div>
+
+        <div class="formula-card" style="margin-top:12px">
+          <div class="formula-title">容量檢核公式</div>
+          <div class="formula-line">
+            <span class="label">（一）水池（Vg）採用（</span><span class="n" id="fAdoptVg">60.81</span><span class="label">）</span><span class="u">M³ ≧ 一日設計用水量（Vd）×</span><input id="vgPercent" class="inline-edit num" type="number" step="0.01" value="20"><span class="u">% = </span><span class="n" id="fMinVg">21.66</span><span class="u"> M³</span>
+          </div>
+          <div class="formula-line">
+            <span class="label">（二）水塔（Vt）採用（</span><span class="n" id="fAdoptVt">39.06</span><span class="label">）</span><span class="u">M³</span>
+          </div>
+          <div class="formula-line">
+            <span class="label">（三）水池、水塔容量合計（</span><span class="n" id="fTankTotal">99.87</span><span class="label">）</span><span class="u">M³，應大於</span><input id="formulaDays" class="inline-edit days num" type="number" step="1" value="2"><span class="u">日設計用水量（Vd）= </span><span class="n" id="fVd100">43.33</span><span class="u"> M³</span>
+          </div>
+          <div class="formula-line formula-line-break" id="resBaseLine">
+            <div>
+              <span class="label">住宅類需符合本公司公告之基準值</span>
+            </div>
+            <div>
+              <span class="n" id="fResDays">1</span><span class="u"> 日設計用水量 = </span><span class="n" id="fResBase">43.33</span><span class="u"> M³</span>
+            </div>
+          </div>
+          <div class="formula-note" id="tankJudgeText">
+    容量檢核：水池＋水塔合計 <b style="color:var(--ok)">99.87</b> M³，
+    <b style="color:var(--ok)">符合</b> 一日設計用水量 Vd = <b>43.33</b> M³；
+    住宅基準值 <b>43.33</b> M³，<b style="color:var(--ok)">已達基準</b>。
+  </div>
+        </div>
+      </div>
+
+      <div class="card di-card tight-card" id="diCard" data-card="di" style="padding: 18px; margin-top: 0px; grid-row-start: di; grid-column-start: di; grid-row-end: di; grid-column-end: di;">
+          <div class="section-title" id="diTitle">（二）進水管口徑（Di）／一日設計用水量（Vd）</div>
+          <table>
+            <thead>
+              <tr>
+                <th>V值範圍 (M³)</th>
+                <th>安全係數</th>
+                <th>總表口徑 (mm)</th>
+                <th>Vd</th>
+                <th>本案採用</th>
+              </tr>
+            </thead>
+            <tbody id="diTableBody">
+    <tr class="">
+      <td>V &lt; 13.5</td>
+      <td>1.5</td>
+      <td>20</td>
+      <td></td>
+      <td></td>
+    </tr>
+  
+    <tr class="">
+      <td>V = 13.6 ～ 24.5</td>
+      <td>1.4</td>
+      <td>25</td>
+      <td></td>
+      <td></td>
+    </tr>
+  
+    <tr class="active-row">
+      <td>V = 24.6 ～ 68.5</td>
+      <td>1.2</td>
+      <td>40</td>
+      <td>43.33</td>
+      <td><span class="adopt-red">(40mm)</span></td>
+    </tr>
+  
+    <tr class="">
+      <td>V &gt; 68.6</td>
+      <td>1.1</td>
+      <td>DI = 4.59√Vd = 30.21 mm</td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5" style="text-align:left; font-weight:700; background:#fff;">
+                  一日設計用水量 (Vd) = V × 安全係數 =（ <span id="footVdValue">43.33</span> ）M³
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+      <div class="card results-card tight-card card-equal" id="resultsCard" data-card="results" style="padding: 18px; min-height: 320px; margin-top: 0px; grid-row-start: results; grid-column-start: results; grid-row-end: results; grid-column-end: results;">
+          <div class="section-title" id="resultsTitle">計算結果總覽</div>
+          <div class="results-grid">
+            <div class="result-box"><h3>V1 住宅用水量</h3><div class="value" id="outV1">34.50</div><div class="eq" id="eqV1">套房:0.00；住宅:34.50；透天/大型別墅:0.00</div></div>
+            <div class="result-box"><h3>V2 非住宅用水量</h3><div class="value" id="outV2">1.61</div><div class="eq" id="eqV2">V2'=1.61 × 1.00 = 1.61</div></div>
+            <div class="result-box"><h3>V 一日用水量</h3><div class="value" id="outV">36.11</div><div class="eq" id="eqV">V = V1 + V2 = 34.50 + 1.61</div></div>
+            <div class="result-box"><h3>Vd 一日設計用水量</h3><div class="value" id="outVd">43.33</div><div class="eq" id="eqVd">Vd = V × 安全係數 = 36.11 × 1.20 = 43.33</div></div>
+            <div class="result-box"><h3>建議總表口徑</h3><div class="value" id="outMeter">40mm</div><div class="eq" id="eqMeter">依 V 值範圍 V = 24.6 ～ 68.5 採 40 mm</div></div>
+            <div class="result-box"><h3>揚水管口徑 Dp</h3><div class="value" id="outDp">43.77mm → 採 50mm</div><div class="eq" id="eqDp">Dp = 6.65√Vd = 43.77 mm；標準口徑採 50 mm</div></div>
+          </div>
+
+          <div class="note" id="resultsNote" style="margin-top:14px">標準口徑依你提供表格級距優先判定：<b>20 / 25 / 40 mm</b>；超過時再顯示公式計算值。<br>本頁同步顯示安全係數、Vd、Di = 4.59√Vd 與本案採用口徑。</div>
+        </div>
+
+      <div class="card print-sheet tight-card card-equal" id="summaryCard" data-card="summary" style="padding: 18px; min-height: 320px; margin-top: 0px; grid-row-start: summary; grid-column-start: summary; grid-row-end: summary; grid-column-end: summary;">
+        <div class="section-title" id="summaryTitle">列印摘要</div>
+        <div class="out-line" id="summary">
+    <div class="summary-list">
+      <div><b>工程名稱：</b>HASS林口建林段199地號</div>
+      <div><b>建照號碼：</b>—</div>
+      <div><b>一、間接給水總表口徑：</b>住宅部分 V1 = <b>34.50</b> M³；非住宅部分 V2 = <b>1.61</b> M³；合計 V = <b>36.11</b> M³</div>
+      <div><b>二、一日設計用水量：</b>Vd = V × 安全係數 = <b>36.11</b> × <b>1.20</b> = <b>43.33</b> M³ <span class="pill">安全係數 1.20</span></div>
+      <div><b>三、進水總表口徑：</b><b>40mm</b>；Di = 4.59√Vd = <b>30.21</b> mm</div>
+      <div><b>四、水池、水塔容量：</b>Vg 採用 <b>60.81</b> M³；Vt 採用 <b>39.06</b> M³；合計 <b>99.87</b> M³</div>
+      <div><b>五、容量檢核：</b>應大於 <b>1</b> 日設計用水量（Vd）= <b>43.33</b> M³；住宅類基準值 = <b>43.33</b> M³</div>
+      <div><b>六、揚水管口徑：</b>Dp = 6.65√Vd = <b>43.77</b> mm，採用 <b>50</b> mm 揚水管</div>
+    </div>
+  </div>
+      </div>
+      </div>
+    </div>
+  
+
+  <div class="backend-overlay" id="backendOverlay" style="display: none;">
+    <div class="backend-panel">
+      <button class="close-x" onclick="closeBackend()">關閉</button>
+      <div class="section-title" style="margin-top:0">後台設定</div>
+      <div class="pwbox">
+        <div>
+          <label>後台密碼</label>
+          <input id="adminPassword" type="password" placeholder="請輸入密碼">
+        </div>
+        <button class="primary" onclick="unlockBackend()">進入後台</button>
+        <button class="ghost" onclick="closeBackend()">取消</button>
+      </div>
+      <div class="fixed-note">預設密碼：<b>123456</b>。進入後可修改固定數值，儲存後會套用到前台並保存在本機瀏覽器。</div>
+      <div id="backendContent" style="display: block; margin-top: 16px;">
+        <div class="backend-grid">
+          <div class="backend-section">
+            <div class="backend-title">住宅固定值</div>
+            <table>
+              <thead><tr><th>類型</th><th>人數/戶</th><th>每人用水量</th></tr></thead>
+              <tbody id="adminResBody">
+    <tr>
+      <td><input value="套房" data-admin="res-name" data-i="0"></td>
+      <td><input type="number" step="0.01" class="num" value="2" data-admin="res-people" data-i="0"></td>
+      <td><input type="number" step="0.01" class="num" value="250" data-admin="res-liters" data-i="0"></td>
+    </tr>
+    <tr>
+      <td><input value="住宅" data-admin="res-name" data-i="1"></td>
+      <td><input type="number" step="0.01" class="num" value="3" data-admin="res-people" data-i="1"></td>
+      <td><input type="number" step="0.01" class="num" value="250" data-admin="res-liters" data-i="1"></td>
+    </tr>
+    <tr>
+      <td><input value="透天/大型別墅" data-admin="res-name" data-i="2"></td>
+      <td><input type="number" step="0.01" class="num" value="8" data-admin="res-people" data-i="2"></td>
+      <td><input type="number" step="0.01" class="num" value="250" data-admin="res-liters" data-i="2"></td>
+    </tr></tbody>
+            </table>
+          </div>
+          <div class="backend-section">
+            <div class="backend-title">非住宅固定值</div>
+            <table>
+              <thead><tr><th>建築物種類</th><th>有效面積比</th><th>人員</th><th>使用水量</th></tr></thead>
+              <tbody id="adminNrBody">
+    <tr>
+      <td><input value="辦公室" data-admin="non-name" data-i="0"></td>
+      <td><input type="number" step="0.01" class="num" value="0.6" data-admin="non-ratio" data-i="0"></td>
+      <td><input type="number" step="0.01" class="num" value="0.2" data-admin="non-persons" data-i="0"></td>
+      <td><input type="number" step="0.01" class="num" value="100" data-admin="non-liters" data-i="0"></td>
+    </tr>
+    <tr>
+      <td><input value="一般事務所" data-admin="non-name" data-i="1"></td>
+      <td><input type="number" step="0.01" class="num" value="0.57" data-admin="non-ratio" data-i="1"></td>
+      <td><input type="number" step="0.01" class="num" value="0.2" data-admin="non-persons" data-i="1"></td>
+      <td><input type="number" step="0.01" class="num" value="100" data-admin="non-liters" data-i="1"></td>
+    </tr>
+    <tr>
+      <td><input value="店舖(三戶)" data-admin="non-name" data-i="2"></td>
+      <td><input type="number" step="0.01" class="num" value="0.55" data-admin="non-ratio" data-i="2"></td>
+      <td><input type="number" step="0.01" class="num" value="0.16" data-admin="non-persons" data-i="2"></td>
+      <td><input type="number" step="0.01" class="num" value="40" data-admin="non-liters" data-i="2"></td>
+    </tr>
+    <tr>
+      <td><input value="中小學校" data-admin="non-name" data-i="3"></td>
+      <td><input type="number" step="0.01" class="num" value="0.6" data-admin="non-ratio" data-i="3"></td>
+      <td><input type="number" step="0.01" class="num" value="0.2" data-admin="non-persons" data-i="3"></td>
+      <td><input type="number" step="0.01" class="num" value="40" data-admin="non-liters" data-i="3"></td>
+    </tr>
+    <tr>
+      <td><input value="工廠" data-admin="non-name" data-i="4"></td>
+      <td><input type="number" step="0.01" class="num" value="0.6" data-admin="non-ratio" data-i="4"></td>
+      <td><input type="number" step="0.01" class="num" value="0.2" data-admin="non-persons" data-i="4"></td>
+      <td><input type="number" step="0.01" class="num" value="60" data-admin="non-liters" data-i="4"></td>
+    </tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="backend-grid" style="margin-top:16px">
+          <div class="backend-section">
+            <div class="backend-title">標準口徑設定</div>
+            <div class="row">
+              <div class="c4"><label>低區口徑</label><input id="std20" type="number" value="20"></div>
+              <div class="c4"><label>中區口徑</label><input id="std25" type="number" value="25"></div>
+              <div class="c4"><label>高區口徑</label><input id="std40" type="number" value="40"></div>
+            </div>
+            <div class="fixed-note muted">Di / Dp 超出範圍時仍依公式計算值顯示；這裡僅設定優先採用的標準口徑。</div>
+          </div>
+          <div class="backend-section">
+            <div class="backend-title">其他後台說明</div>
+            <div class="fixed-note">
+              1. 前台紅色欄位可直接填寫。<br>
+              2. 黑框內固定數值請在此修改。<br>
+              3. 儲存後會立即更新前台計算與列印摘要。<br>
+              4. 若要回到原始預設，可按「恢復預設值」。
+            </div>
+          </div>
+        </div>
+        <div class="backend-grid" style="margin-top:16px">
+          <div class="backend-section">
+            <div class="backend-title">文字內容設定</div>
+            <div class="row">
+              <div class="c12"><label>頁首標題</label><input id="txtPageTitle"></div>
+              <div class="c12"><label>頁首說明</label><textarea id="txtHeroSub"></textarea></div>
+              <div class="c6"><label>基本資料標題</label><input id="txtBasicTitle"></div>
+              <div class="c6"><label>日用水量標題</label><input id="txtWaterTitle"></div>
+              <div class="c6"><label>水池水塔標題</label><input id="txtTankTitle"></div>
+              <div class="c6"><label>Di/Vd 標題</label><input id="txtDiTitle"></div>
+              <div class="c6"><label>計算結果總覽標題</label><input id="txtResultsTitle"></div>
+              <div class="c6"><label>列印摘要標題</label><input id="txtSummaryTitle"></div>
+              <div class="c12"><label>住宅說明文字</label><textarea id="txtResidentialRule"></textarea></div>
+              <div class="c12"><label>固定欄位說明</label><textarea id="txtWaterFixedNote"></textarea></div>
+              <div class="c12"><label>結果總覽補充說明</label><textarea id="txtResultsNote"></textarea></div>
+            </div>
+          </div>
+          <div class="backend-section">
+            <div class="backend-title">版面位置 / 大小設定</div>
+            <div class="fixed-note">可調整右側與下方四個主框的位置、上下間距、卡片高度、內距。左側兩個主框可調整順序與高度。儲存後立即套用。</div>
+            <div class="row">
+              <div class="c4"><label>左右欄間距</label><input id="layoutGap" type="number" step="1"></div>
+              <div class="c4"><label>上下列間距</label><input id="layoutRowGap" type="number" step="1"></div>
+              <div class="c4"><label>卡片預設內距</label><input id="layoutCardPadding" type="number" step="1"></div>
+            </div>
+            <table class="layout-table">
+              <thead><tr><th>區塊</th><th>位置</th><th>最小高度</th><th>上方位移</th></tr></thead>
+              <tbody>
+                <tr><td>基本資料</td><td><select id="slotBasic"><option value="1">左上</option><option value="2">左下</option></select></td><td><input id="hBasic" type="number"></td><td><input id="mtBasic" type="number"></td></tr>
+                <tr><td>日用水量 V</td><td><select id="slotWater"><option value="1">左上</option><option value="2">左下</option></select></td><td><input id="hWater" type="number"></td><td><input id="mtWater" type="number"></td></tr>
+                <tr><td>水池/水塔容量</td><td><select id="slotTank"><option value="tank">右上</option><option value="di">右中</option><option value="results">左下</option><option value="summary">右下</option></select></td><td><input id="hTank" type="number"></td><td><input id="mtTank" type="number"></td></tr>
+                <tr><td>Di / Vd</td><td><select id="slotDi"><option value="tank">右上</option><option value="di">右中</option><option value="results">左下</option><option value="summary">右下</option></select></td><td><input id="hDi" type="number"></td><td><input id="mtDi" type="number"></td></tr>
+                <tr><td>計算結果總覽</td><td><select id="slotResults"><option value="tank">右上</option><option value="di">右中</option><option value="results">左下</option><option value="summary">右下</option></select></td><td><input id="hResults" type="number"></td><td><input id="mtResults" type="number"></td></tr>
+                <tr><td>列印摘要</td><td><select id="slotSummary"><option value="tank">右上</option><option value="di">右中</option><option value="results">左下</option><option value="summary">右下</option></select></td><td><input id="hSummary" type="number"></td><td><input id="mtSummary" type="number"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" onclick="saveBackend()">儲存後台設定</button>
+          <button class="danger" onclick="resetBackendDefaults()">恢復預設值</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const STORAGE_MAIN = 'water_calc_main_v5';
+const STORAGE_BACKEND = 'water_calc_backend_v5';
+const DEFAULT_PASSWORD = '123456';
+
+const defaultResidential = [
+  { name:'套房', people:2, households:0, liters:250 },
+  { name:'住宅', people:3, households:46, liters:250 },
+  { name:'透天/大型別墅', people:8, households:0, liters:250 }
+];
+
+const defaultNonResidential = [
+  { name:'辦公室', area:0, ratio:0.6, persons:0.2, liters:100 },
+  { name:'一般事務所', area:0, ratio:0.57, persons:0.2, liters:100 },
+  { name:'店舖(三戶)', area:182.72, ratio:0.55, persons:0.16, liters:100 },
+  { name:'中小學校', area:0, ratio:0.6, persons:0.2, liters:40 },
+  { name:'工廠', area:0, ratio:0.6, persons:0.2, liters:60 }
+];
+
+const defaultBackend = {
+  residential: structuredClone(defaultResidential).map(({name,people,liters})=>({name,people,liters})),
+  nonResidential: structuredClone(defaultNonResidential).map(({name,ratio,persons,liters})=>({name,ratio,persons,liters})),
+  standardSizes:[20,25,40,50,75,100],
+  texts:{
+    pageTitle:'台灣自來水公司內線審查計算表｜網頁版填入計算',
+    heroSub:'可直接輸入工程名稱、建照號碼、戶數、樓地板面積、V2 調整係數、住宅類基準日數、水池與水塔容量，系統自動計算 <b>V1、V2、V、Vd、Di、水池/水塔容量、揚水管口徑</b>。<br>固定欄位預設不可改；如需調整固定數值，請進入後台設定。',
+    basicTitle:'基本資料',
+    waterTitle:'一、間接給水總表口徑 — 日用水量 V',
+    tankTitle:'二、水池（Vg）及水塔（Vt）容量',
+    diTitle:'（二）進水管口徑（Di）／一日設計用水量（Vd）',
+    resultsTitle:'計算結果總覽',
+    summaryTitle:'列印摘要',
+    residentialRule:'【套房每戶以2人，住宅每戶以3人計算，透天厝、大型別墅每戶8人計算，每人每天用水量以250L/cap計算】',
+    waterFixedNote:'紅色框欄位可填寫；其餘欄位均為固定值。若需修改固定欄位內數字，請按右上角「後台設定」。',
+    resultsNote:'標準口徑依你提供表格級距優先判定：<b>20 / 25 / 40 mm</b>；超過時再顯示公式計算值。<br>本頁同步顯示安全係數、Vd、Di = 4.59√Vd 與本案採用口徑。'
+  },
+  layout:{
+    gap:16,rowGap:16,cardPadding:18,
+    basic:{order:1,minHeight:0,marginTop:0},
+    water:{order:2,minHeight:0,marginTop:0},
+    tank:{slot:'tank',minHeight:320,marginTop:0},
+    di:{slot:'di',minHeight:0,marginTop:0},
+    results:{slot:'results',minHeight:320,marginTop:0},
+    summary:{slot:'summary',minHeight:320,marginTop:0}
+  }
+};
+
+const defaultMain = {
+  projectName:'HASS林口建林段',
+  permitNo:'',
+  residential: structuredClone(defaultResidential).map(({name,households})=>({name,households})),
+  nonResidential: structuredClone(defaultNonResidential).map(({name,area})=>({name,area})),
+  v2Factor:1,
+  resDays:2,
+  vgPercent:20,
+  adoptVg:60.81,
+  adoptVt:39.06
+};
+
+let backend = loadJson(STORAGE_BACKEND, defaultBackend);
+let mainData = loadJson(STORAGE_MAIN, defaultMain);
+try{
+  if(window.__EXPORTED_BACKEND__) backend = Object.assign(structuredClone(defaultBackend), JSON.parse(window.__EXPORTED_BACKEND__));
+  if(window.__EXPORTED_MAIN__) mainData = Object.assign(structuredClone(defaultMain), JSON.parse(window.__EXPORTED_MAIN__));
+}catch(err){}
+
+
+function ensureBackendShape(){
+  backend.texts = Object.assign(structuredClone(defaultBackend.texts), backend.texts || {});
+  backend.layout = Object.assign(structuredClone(defaultBackend.layout), backend.layout || {});
+  ['basic','water','tank','di','results','summary'].forEach(k=>{
+    backend.layout[k] = Object.assign(structuredClone(defaultBackend.layout[k]), backend.layout[k] || {});
+  });
+}
+
+function applyTextContent(){
+  ensureBackendShape();
+  document.getElementById('pageTitle').innerHTML = backend.texts.pageTitle;
+  document.getElementById('heroSub').innerHTML = backend.texts.heroSub;
+  document.getElementById('basicTitle').innerHTML = backend.texts.basicTitle;
+  document.getElementById('waterTitle').innerHTML = backend.texts.waterTitle;
+  document.getElementById('tankTitle').innerHTML = backend.texts.tankTitle;
+  document.getElementById('diTitle').innerHTML = backend.texts.diTitle;
+  document.getElementById('resultsTitle').innerHTML = backend.texts.resultsTitle;
+  document.getElementById('summaryTitle').innerHTML = backend.texts.summaryTitle;
+  document.getElementById('residentialRuleText').innerHTML = backend.texts.residentialRule;
+  document.getElementById('waterFixedNote').innerHTML = backend.texts.waterFixedNote;
+  document.getElementById('resultsNote').innerHTML = backend.texts.resultsNote;
+}
+
+function applyLayout(){
+  ensureBackendShape();
+  const pg = document.querySelector('.page-grid');
+  pg.style.columnGap = `${n(backend.layout.gap)}px`;
+  pg.style.rowGap = `${n(backend.layout.rowGap)}px`;
+
+  const leftStack = document.querySelector('.left-stack');
+  const basic = document.getElementById('basicCard');
+  const water = document.getElementById('waterCard');
+  [basic, water].sort((a,b)=>{
+    const ka = a.id === 'basicCard' ? backend.layout.basic.order : backend.layout.water.order;
+    const kb = b.id === 'basicCard' ? backend.layout.basic.order : backend.layout.water.order;
+    return ka-kb;
+  }).forEach(el=>leftStack.appendChild(el));
+
+  const cardMap = {
+    basic: basic,
+    water: water,
+    tank: document.getElementById('tankCard'),
+    di: document.getElementById('diCard'),
+    results: document.getElementById('resultsCard'),
+    summary: document.getElementById('summaryCard')
+  };
+  Object.entries(cardMap).forEach(([k,el])=>{
+    const cfg = backend.layout[k] || {};
+    el.style.padding = `${n(backend.layout.cardPadding || 18)}px`;
+    el.style.minHeight = n(cfg.minHeight) ? `${n(cfg.minHeight)}px` : '';
+    el.style.marginTop = `${n(cfg.marginTop)}px`;
+  });
+  document.getElementById('tankCard').style.gridArea = backend.layout.tank.slot;
+  document.getElementById('diCard').style.gridArea = backend.layout.di.slot;
+  document.getElementById('resultsCard').style.gridArea = backend.layout.results.slot;
+  document.getElementById('summaryCard').style.gridArea = backend.layout.summary.slot;
+}
+
+function renderBackendExtras(){
+  ensureBackendShape();
+  document.getElementById('txtPageTitle').value = backend.texts.pageTitle;
+  document.getElementById('txtHeroSub').value = backend.texts.heroSub;
+  document.getElementById('txtBasicTitle').value = backend.texts.basicTitle;
+  document.getElementById('txtWaterTitle').value = backend.texts.waterTitle;
+  document.getElementById('txtTankTitle').value = backend.texts.tankTitle;
+  document.getElementById('txtDiTitle').value = backend.texts.diTitle;
+  document.getElementById('txtResultsTitle').value = backend.texts.resultsTitle;
+  document.getElementById('txtSummaryTitle').value = backend.texts.summaryTitle;
+  document.getElementById('txtResidentialRule').value = backend.texts.residentialRule;
+  document.getElementById('txtWaterFixedNote').value = backend.texts.waterFixedNote;
+  document.getElementById('txtResultsNote').value = backend.texts.resultsNote;
+
+  document.getElementById('layoutGap').value = backend.layout.gap;
+  document.getElementById('layoutRowGap').value = backend.layout.rowGap;
+  document.getElementById('layoutCardPadding').value = backend.layout.cardPadding;
+  document.getElementById('slotBasic').value = String(backend.layout.basic.order || 1);
+  document.getElementById('slotWater').value = String(backend.layout.water.order || 2);
+  document.getElementById('hBasic').value = backend.layout.basic.minHeight || 0;
+  document.getElementById('mtBasic').value = backend.layout.basic.marginTop || 0;
+  document.getElementById('hWater').value = backend.layout.water.minHeight || 0;
+  document.getElementById('mtWater').value = backend.layout.water.marginTop || 0;
+  document.getElementById('slotTank').value = backend.layout.tank.slot;
+  document.getElementById('hTank').value = backend.layout.tank.minHeight || 0;
+  document.getElementById('mtTank').value = backend.layout.tank.marginTop || 0;
+  document.getElementById('slotDi').value = backend.layout.di.slot;
+  document.getElementById('hDi').value = backend.layout.di.minHeight || 0;
+  document.getElementById('mtDi').value = backend.layout.di.marginTop || 0;
+  document.getElementById('slotResults').value = backend.layout.results.slot;
+  document.getElementById('hResults').value = backend.layout.results.minHeight || 0;
+  document.getElementById('mtResults').value = backend.layout.results.marginTop || 0;
+  document.getElementById('slotSummary').value = backend.layout.summary.slot;
+  document.getElementById('hSummary').value = backend.layout.summary.minHeight || 0;
+  document.getElementById('mtSummary').value = backend.layout.summary.marginTop || 0;
+}
+
+function loadJson(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return structuredClone(fallback);
+    return Object.assign(structuredClone(fallback), JSON.parse(raw));
+  }catch(e){ return structuredClone(fallback); }
+}
+function saveJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+function n(v){ const x = parseFloat(v); return Number.isFinite(x) ? x : 0; }
+function fmt(v,d=2){ return n(v).toLocaleString('zh-Hant', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function escapeHtml(str){ return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function pickStandard(mm){ for(const s of backend.standardSizes){ if(mm <= s) return s; } return backend.standardSizes[backend.standardSizes.length-1] || mm; }
+function mergedResidential(){
+  return backend.residential.map((b, i) => ({
+    name: b.name,
+    people: n(b.people),
+    liters: n(b.liters),
+    households: n(mainData.residential[i]?.households)
+  }));
+}
+function mergedNonResidential(){
+  return backend.nonResidential.map((b, i) => ({
+    name: b.name,
+    ratio: n(b.ratio),
+    persons: n(b.persons),
+    liters: n(b.liters),
+    area: n(mainData.nonResidential[i]?.area)
+  }));
+}
+function resFormula(item){ return n(item.people)*n(item.households)*n(item.liters)/1000; }
+function nonResFormula(item){ return n(item.area)*n(item.ratio)*n(item.persons)*n(item.liters)/1000; }
+
+function syncMainShape(){
+  mainData.residential = backend.residential.map((b,i)=>({name:b.name, households:n(mainData.residential[i]?.households)}));
+  mainData.nonResidential = backend.nonResidential.map((b,i)=>({name:b.name, area:n(mainData.nonResidential[i]?.area)}));
+}
+
+function renderResidential(){
+  syncMainShape();
+  const body = document.getElementById('resBody');
+  body.innerHTML = '';
+  mergedResidential().forEach((r, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${escapeAttr(r.name)}" readonly></td>
+      <td><input class="num" type="number" step="0.01" value="${r.people}" readonly></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="${mainData.residential[idx].households}" data-kind="res-households" data-i="${idx}"></td>
+      <td><input class="num" type="number" step="0.01" value="${r.liters}" readonly></td>
+      <td>${fmt(resFormula(r))}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderNonResidential(){
+  syncMainShape();
+  const body = document.getElementById('nrBody');
+  body.innerHTML = '';
+  mergedNonResidential().forEach((r, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${escapeAttr(r.name)}" readonly></td>
+      <td><input class="num editable-input" type="number" step="0.01" value="${mainData.nonResidential[idx].area}" data-kind="non-area" data-i="${idx}"></td>
+      <td><input class="num" type="number" step="0.01" value="${r.ratio}" readonly></td>
+      <td><input class="num" type="number" step="0.01" value="${r.persons}" readonly></td>
+      <td><input class="num" type="number" step="0.01" value="${r.liters}" readonly></td>
+      <td>${fmt(nonResFormula(r))}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function escapeAttr(str){ return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+function calcSafety(V){
+  if(V < 13.5) return {factor:1.5, meter:backend.standardSizes[0] || 20, range:'V < 13.5'};
+  if(V <= 24.5) return {factor:1.4, meter:backend.standardSizes[1] || 25, range:'V = 13.6 ～ 24.5'};
+  if(V <= 68.5) return {factor:1.2, meter:backend.standardSizes[2] || 40, range:'V = 24.6 ～ 68.5'};
+  return {factor:1.1, meter:null, range:'V > 68.6'};
+}
+
+function renderDiTable(V, Vd, rawDi, safety){
+  const rows = [
+    {label:'V < 13.5', factor:1.5, meter:String(backend.standardSizes[0] || 20), active: V < 13.5},
+    {label:'V = 13.6 ～ 24.5', factor:1.4, meter:String(backend.standardSizes[1] || 25), active: V >= 13.5 && V <= 24.5},
+    {label:'V = 24.6 ～ 68.5', factor:1.2, meter:String(backend.standardSizes[2] || 40), active: V > 24.5 && V <= 68.5},
+    {label:'V > 68.6', factor:1.1, meter:`DI = 4.59√Vd = ${fmt(rawDi)} mm`, active: V > 68.5}
+  ];
+  const adopted = safety.meter ? `(${safety.meter}mm)` : `(${fmt(rawDi)}mm)`;
+  document.getElementById('diTableBody').innerHTML = rows.map(r => `
+    <tr class="${r.active ? 'active-row' : ''}">
+      <td>${r.label}</td>
+      <td>${fmt(r.factor,1)}</td>
+      <td>${r.meter}</td>
+      <td>${r.active ? fmt(Vd) : ''}</td>
+      <td>${r.active ? `<span class="adopt-red">${adopted}</span>` : ''}</td>
+    </tr>
+  `).join('');
+  document.getElementById('footVdValue').textContent = fmt(Vd);
+}
+
+function update(){
+  saveJson(STORAGE_MAIN, mainData);
+  const residential = mergedResidential();
+  const nonResidential = mergedNonResidential();
+  const v1 = residential.reduce((s,r)=>s+resFormula(r),0);
+  const v2Prime = nonResidential.reduce((s,r)=>s+nonResFormula(r),0);
+  const v2Factor = n(mainData.v2Factor) || 1;
+  const v2 = v2Prime * v2Factor;
+  const V = v1 + v2;
+  const safety = calcSafety(V);
+  const Vd = V * safety.factor;
+  const vgPercent = n(mainData.vgPercent || 0);
+  const minVg = Vd * vgPercent / 100;
+  const resDays = n(mainData.resDays || 2);
+  const resBase = Vd * resDays;
+  const rawDp = 6.65 * Math.sqrt(Vd || 0);
+  const adoptDp = pickStandard(rawDp);
+  const adoptVg = n(mainData.adoptVg);
+  const adoptVt = n(mainData.adoptVt);
+  const tankTotal = adoptVg + adoptVt;
+  const tankPass = tankTotal >= Vd;
+  const resBasePass = tankTotal >= resBase;
+  const rawDi = 4.59 * Math.sqrt(Vd || 0);
+
+  document.getElementById('projectName').value = mainData.projectName;
+  document.getElementById('permitNo').value = mainData.permitNo;
+  document.getElementById('v2Factor').value = mainData.v2Factor;
+  document.getElementById('resDays').value = mainData.resDays;
+  document.getElementById('formulaDays').value = mainData.resDays;
+  document.getElementById('vgPercent').value = mainData.vgPercent;
+  document.getElementById('adoptVg').value = mainData.adoptVg;
+  document.getElementById('adoptVt').value = mainData.adoptVt;
+
+  document.getElementById('outV1').textContent = fmt(v1);
+  document.getElementById('eqV1').textContent = residential.map(r => `${r.name}:${fmt(resFormula(r))}`).join('；');
+  document.getElementById('outV2').textContent = fmt(v2);
+  document.getElementById('eqV2').textContent = `V2'=${fmt(v2Prime)} × ${fmt(v2Factor)} = ${fmt(v2)}`;
+  document.getElementById('outV').textContent = fmt(V);
+  document.getElementById('eqV').textContent = `V = V1 + V2 = ${fmt(v1)} + ${fmt(v2)}`;
+  document.getElementById('outVd').textContent = fmt(Vd);
+  document.getElementById('eqVd').textContent = `Vd = V × 安全係數 = ${fmt(V)} × ${fmt(safety.factor)} = ${fmt(Vd)}`;
+  const adoptedMeterText = safety.meter ? `${safety.meter}mm` : `${fmt(rawDi)}mm`;
+  document.getElementById('outMeter').textContent = adoptedMeterText;
+  document.getElementById('eqMeter').textContent = safety.meter ? `依 V 值範圍 ${safety.range} 採 ${safety.meter} mm` : `V > 68.6，依 DI = 4.59√Vd = ${fmt(rawDi)} mm`;
+  renderDiTable(V, Vd, rawDi, safety);
+  document.getElementById('outDp').textContent = `${fmt(rawDp)}mm → 採 ${adoptDp}mm`;
+  document.getElementById('eqDp').textContent = `Dp = 6.65√Vd = ${fmt(rawDp)} mm；標準口徑採 ${adoptDp} mm`;
+
+  document.getElementById('fAdoptVg').textContent = fmt(adoptVg);
+  document.getElementById('fMinVg').textContent = fmt(minVg);
+  document.getElementById('fAdoptVt').textContent = fmt(adoptVt);
+  document.getElementById('fTankTotal').textContent = fmt(tankTotal);
+  document.getElementById('fVd100').textContent = fmt(Vd);
+  document.getElementById('fResDays').textContent = fmt(resDays,0);
+  document.getElementById('fResBase').textContent = fmt(resBase);
+  document.getElementById('tankJudgeText').innerHTML = `
+    容量檢核：水池＋水塔合計 <b style="color:${tankPass ? 'var(--ok)' : 'var(--warn)'}">${fmt(tankTotal)}</b> M³，
+    ${tankPass ? '<b style="color:var(--ok)">符合</b>' : '<b style="color:var(--warn)">不足</b>'} 一日設計用水量 Vd = <b>${fmt(Vd)}</b> M³；
+    住宅基準值 <b>${fmt(resBase)}</b> M³，${resBasePass ? '<b style="color:var(--ok)">已達基準</b>' : '<b style="color:var(--warn)">未達基準</b>'}。
+  `;
+
+  document.getElementById('summary').innerHTML = `
+    <div class="summary-list">
+      <div><b>工程名稱：</b>${escapeHtml(mainData.projectName)}</div>
+      <div><b>建照號碼：</b>${escapeHtml(mainData.permitNo || '—')}</div>
+      <div><b>一、間接給水總表口徑：</b>住宅部分 V1 = <b>${fmt(v1)}</b> M³；非住宅部分 V2 = <b>${fmt(v2)}</b> M³；合計 V = <b>${fmt(V)}</b> M³</div>
+      <div><b>二、一日設計用水量：</b>Vd = V × 安全係數 = <b>${fmt(V)}</b> × <b>${fmt(safety.factor)}</b> = <b>${fmt(Vd)}</b> M³ <span class="pill">安全係數 ${fmt(safety.factor)}</span></div>
+      <div><b>三、進水總表口徑：</b><b>${escapeHtml(adoptedMeterText)}</b>；Di = 4.59√Vd = <b>${fmt(rawDi)}</b> mm</div>
+      <div><b>四、水池、水塔容量：</b>Vg 採用 <b>${fmt(adoptVg)}</b> M³；Vt 採用 <b>${fmt(adoptVt)}</b> M³；合計 <b>${fmt(tankTotal)}</b> M³</div>
+      <div><b>五、容量檢核：</b>應大於 <b>${fmt(resDays,0)}</b> 日設計用水量（Vd）= <b>${fmt(resBase)}</b> M³；住宅類基準值 = <b>${fmt(resBase)}</b> M³</div>
+      <div><b>六、揚水管口徑：</b>Dp = 6.65√Vd = <b>${fmt(rawDp)}</b> mm，採用 <b>${adoptDp}</b> mm 揚水管</div>
+    </div>
+  `;
+}
+
+function syncMainDataFromInput(t){
+  if(t.id === 'projectName') mainData.projectName = t.value;
+  else if(t.id === 'permitNo') mainData.permitNo = t.value;
+  else if(t.id === 'v2Factor') mainData.v2Factor = t.value;
+  else if(t.id === 'resDays' || t.id === 'formulaDays') mainData.resDays = t.value;
+  else if(t.id === 'vgPercent') mainData.vgPercent = t.value;
+  else if(t.id === 'adoptVg') mainData.adoptVg = t.value;
+  else if(t.id === 'adoptVt') mainData.adoptVt = t.value;
+  else if(t.dataset.kind === 'res-households') mainData.residential[Number(t.dataset.i)].households = t.value;
+  else if(t.dataset.kind === 'non-area') mainData.nonResidential[Number(t.dataset.i)].area = t.value;
+  else return false;
+  return true;
+}
+
+function onMainInput(e){
+  const t = e.target;
+  if(!syncMainDataFromInput(t)) return;
+  saveJson(STORAGE_MAIN, mainData);
+}
+
+function onMainCommit(e){
+  const t = e.target;
+  if(!syncMainDataFromInput(t)) return;
+  if(t.dataset.kind === 'res-households' || t.dataset.kind === 'non-area'){
+    renderResidential();
+    renderNonResidential();
+    bindMainInputs();
+  }
+  update();
+}
+
+function onMainKeydown(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  e.target.blur();
+}
+
+function bindMainInputs(){
+  document.querySelectorAll('#projectName,#permitNo,#v2Factor,#resDays,#formulaDays,#vgPercent,#adoptVg,#adoptVt,input[data-kind]').forEach(el=>{
+    el.removeEventListener('input', onMainInput);
+    el.removeEventListener('change', onMainCommit);
+    el.removeEventListener('blur', onMainCommit);
+    el.removeEventListener('keydown', onMainKeydown);
+    el.addEventListener('input', onMainInput);
+    el.addEventListener('change', onMainCommit);
+    el.addEventListener('blur', onMainCommit);
+    el.addEventListener('keydown', onMainKeydown);
+  });
+}
+
+function downloadJSON(){
+  commitAllInputs();
+  const data = { mainData, backend };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const filename = sanitizeFilename(mainData.projectName || '水理計算表') || '水理計算表';
+  a.download = `${filename}_${stamp()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 300);
+}
+
+function downloadBlob(content, filename, type='text/plain;charset=utf-8'){
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  try{ a.click(); }catch(err){ a.dispatchEvent(new MouseEvent('click', {bubbles:true,cancelable:true,view:window})); }
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 1200);
+}
+
+function sanitizeFilename(name){
+  return String(name || '').trim().replace(/[\\/:*?"<>|]+/g, '_');
+}
+function stamp(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function syncAllEditableValues(){
+  document.querySelectorAll('#projectName,#permitNo,#v2Factor,#resDays,#formulaDays,#vgPercent,#adoptVg,#adoptVt,input[data-kind]').forEach(syncMainDataFromInput);
+}
+
+function commitAllInputs(){
+  syncAllEditableValues();
+  document.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.id === 'jsonFile' || el.id === 'adminPassword') return;
+    if(typeof el.blur === 'function') el.blur();
+  });
+  saveJson(STORAGE_MAIN, mainData);
+  saveJson(STORAGE_BACKEND, backend);
+}
+
+
+function buildExportHTML(){
+  commitAllInputs();
+  const mainJson = JSON.stringify(mainData).replace(/<\/script/gi, '<\\/script');
+  const backendJson = JSON.stringify(backend).replace(/<\/script/gi, '<\\/script');
+  let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+  html = html.replace(/<script>\s*localStorage\.setItem\([\s\S]*?<\/script>\s*/g, '');
+  html = html.replace(/window\.__EXPORTED_MAIN__\s*=\s*.*?;\s*/g, '');
+  html = html.replace(/window\.__EXPORTED_BACKEND__\s*=\s*.*?;\s*/g, '');
+
+  const preload = `<script>\nlocalStorage.setItem(${JSON.stringify(STORAGE_MAIN)}, ${JSON.stringify(mainJson)});\nlocalStorage.setItem(${JSON.stringify(STORAGE_BACKEND)}, ${JSON.stringify(backendJson)});\n\n\n<\/script>\n`;
+
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', preload + '</head>');
+  } else {
+    html = preload + html;
+  }
+  return html;
+}
+
+function saveAsNewHTML(event){
+  if(event) event.preventDefault();
+  const suggested = sanitizeFilename(mainData.projectName || '水理計算表_新檔') || '水理計算表_新檔';
+  const name = prompt('請輸入另存新檔檔名', `${suggested}_${stamp()}`);
+  if(name === null) return false;
+  const filename = sanitizeFilename(name) || '水理計算表_新檔';
+  downloadBlob(buildExportHTML(), `${filename}.html`, 'text/html;charset=utf-8');
+  return false;
+}
+
+function openBackend(){
+  renderBackendTables();
+  renderBackendExtras();
+  document.getElementById('backendOverlay').style.display = 'flex';
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('backendContent').style.display = 'none';
+}
+
+function closeBackend(){
+  document.getElementById('backendOverlay').style.display = 'none';
+}
+
+function unlockBackend(){
+  const pw = document.getElementById('adminPassword').value;
+  if(pw !== DEFAULT_PASSWORD){
+    alert('密碼錯誤，請輸入正確後台密碼。');
+    return;
+  }
+  renderBackendTables();
+  renderBackendExtras();
+  document.getElementById('backendContent').style.display = 'block';
+}
+
+function renderBackendTables(){
+  const adminResBody = document.getElementById('adminResBody');
+  adminResBody.innerHTML = backend.residential.map((r, i) => `
+    <tr>
+      <td><input value="${escapeAttr(r.name)}" data-admin="res-name" data-i="${i}"></td>
+      <td><input type="number" step="0.01" class="num" value="${n(r.people)}" data-admin="res-people" data-i="${i}"></td>
+      <td><input type="number" step="0.01" class="num" value="${n(r.liters)}" data-admin="res-liters" data-i="${i}"></td>
+    </tr>`).join('');
+
+  const adminNrBody = document.getElementById('adminNrBody');
+  adminNrBody.innerHTML = backend.nonResidential.map((r, i) => `
+    <tr>
+      <td><input value="${escapeAttr(r.name)}" data-admin="non-name" data-i="${i}"></td>
+      <td><input type="number" step="0.01" class="num" value="${n(r.ratio)}" data-admin="non-ratio" data-i="${i}"></td>
+      <td><input type="number" step="0.01" class="num" value="${n(r.persons)}" data-admin="non-persons" data-i="${i}"></td>
+      <td><input type="number" step="0.01" class="num" value="${n(r.liters)}" data-admin="non-liters" data-i="${i}"></td>
+    </tr>`).join('');
+
+  document.getElementById('std20').value = backend.standardSizes?.[0] ?? 20;
+  document.getElementById('std25').value = backend.standardSizes?.[1] ?? 25;
+  document.getElementById('std40').value = backend.standardSizes?.[2] ?? 40;
+}
+
+function saveBackend(){
+  ensureBackendShape();
+
+  document.querySelectorAll('[data-admin]').forEach(el => {
+    const i = Number(el.dataset.i);
+    const kind = el.dataset.admin;
+    if(kind === 'res-name') backend.residential[i].name = el.value;
+    else if(kind === 'res-people') backend.residential[i].people = n(el.value);
+    else if(kind === 'res-liters') backend.residential[i].liters = n(el.value);
+    else if(kind === 'non-name') backend.nonResidential[i].name = el.value;
+    else if(kind === 'non-ratio') backend.nonResidential[i].ratio = n(el.value);
+    else if(kind === 'non-persons') backend.nonResidential[i].persons = n(el.value);
+    else if(kind === 'non-liters') backend.nonResidential[i].liters = n(el.value);
+  });
+
+  backend.standardSizes = [
+    n(document.getElementById('std20').value) || 20,
+    n(document.getElementById('std25').value) || 25,
+    n(document.getElementById('std40').value) || 40,
+    50, 75, 100
+  ];
+
+  backend.texts.pageTitle = document.getElementById('txtPageTitle').value;
+  backend.texts.heroSub = document.getElementById('txtHeroSub').value;
+  backend.texts.basicTitle = document.getElementById('txtBasicTitle').value;
+  backend.texts.waterTitle = document.getElementById('txtWaterTitle').value;
+  backend.texts.tankTitle = document.getElementById('txtTankTitle').value;
+  backend.texts.diTitle = document.getElementById('txtDiTitle').value;
+  backend.texts.resultsTitle = document.getElementById('txtResultsTitle').value;
+  backend.texts.summaryTitle = document.getElementById('txtSummaryTitle').value;
+  backend.texts.residentialRule = document.getElementById('txtResidentialRule').value;
+  backend.texts.waterFixedNote = document.getElementById('txtWaterFixedNote').value;
+  backend.texts.resultsNote = document.getElementById('txtResultsNote').value;
+
+  backend.layout.gap = n(document.getElementById('layoutGap').value) || 16;
+  backend.layout.rowGap = n(document.getElementById('layoutRowGap').value) || 16;
+  backend.layout.cardPadding = n(document.getElementById('layoutCardPadding').value) || 18;
+
+  backend.layout.basic.order = n(document.getElementById('slotBasic').value) || 1;
+  backend.layout.basic.minHeight = n(document.getElementById('hBasic').value);
+  backend.layout.basic.marginTop = n(document.getElementById('mtBasic').value);
+  backend.layout.water.order = n(document.getElementById('slotWater').value) || 2;
+  backend.layout.water.minHeight = n(document.getElementById('hWater').value);
+  backend.layout.water.marginTop = n(document.getElementById('mtWater').value);
+  backend.layout.tank.slot = document.getElementById('slotTank').value;
+  backend.layout.tank.minHeight = n(document.getElementById('hTank').value);
+  backend.layout.tank.marginTop = n(document.getElementById('mtTank').value);
+  backend.layout.di.slot = document.getElementById('slotDi').value;
+  backend.layout.di.minHeight = n(document.getElementById('hDi').value);
+  backend.layout.di.marginTop = n(document.getElementById('mtDi').value);
+  backend.layout.results.slot = document.getElementById('slotResults').value;
+  backend.layout.results.minHeight = n(document.getElementById('hResults').value);
+  backend.layout.results.marginTop = n(document.getElementById('mtResults').value);
+  backend.layout.summary.slot = document.getElementById('slotSummary').value;
+  backend.layout.summary.minHeight = n(document.getElementById('hSummary').value);
+  backend.layout.summary.marginTop = n(document.getElementById('mtSummary').value);
+
+  syncMainShape();
+  saveJson(STORAGE_BACKEND, backend);
+  saveJson(STORAGE_MAIN, mainData);
+  applyTextContent();
+  applyLayout();
+  renderResidential();
+  renderNonResidential();
+  bindMainInputs();
+  update();
+  alert('後台設定已儲存。');
+  closeBackend();
+}
+
+function resetBackendDefaults(){
+  if(!confirm('確定要恢復後台預設值嗎？')) return;
+  backend = structuredClone(defaultBackend);
+  saveJson(STORAGE_BACKEND, backend);
+  syncMainShape();
+  applyTextContent();
+  applyLayout();
+  renderBackendTables();
+  renderBackendExtras();
+  renderResidential();
+  renderNonResidential();
+  bindMainInputs();
+  update();
+  alert('已恢復預設值。');
+}
+
+function initPage(){
+  ensureBackendShape();
+  syncMainShape();
+  applyTextContent();
+  applyLayout();
+  renderResidential();
+  renderNonResidential();
+  bindMainInputs();
+  renderBackendTables();
+  renderBackendExtras();
+  document.getElementById('backendContent').style.display = 'none';
+  update();
+
+  document.getElementById('backendOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'backendOverlay') closeBackend();
+  });
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initPage);
+}else{
+  initPage();
+}
+</script>
+
+
+</body></html>
